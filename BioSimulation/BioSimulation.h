@@ -12,23 +12,39 @@
 #define String std::string
 #define Map std::map
 
+#define EULER 2.7182818284590452353602874
+
 using namespace cimg_library;
 
 // Defautl classes and structs
 struct Organism;
+struct Food;
 struct BioSimulation;
 struct Brain;
 struct Inputneuron;
 struct Hiddenneuron;
 struct Outputneuron;
 
+namespace ActivationFunctions {
+	double ReLU(double);
+	double Linear(double);
+	double Sigmoid(double);
+	
+	void GetActivationFunction(String, double (*&)(double));
+}
+namespace CollisionDetection {
+	bool Collide(Organism*, Food*);
+}
+
 enum Sensor {
 	HEALTH, // Get health
 	ENERGY, // Get energy
 	PX, // Position x from -0.5 -> 0.5
-	PY, // Distance to closest wall y -0.5 -> 0.5
-	DCEX, // Distance to closest organism x
-	DCEY, // Distance to closest organism y
+	PY, // Position y y -0.5 -> 0.5
+	DFX,
+	DFY,
+	/*DCEX, // Distance to closest organism x
+	DCEY, // Distance to closest organism */
 
 	/*PH1, // Pheremone channel 1
 	PH1l, // Latest pheremone channel 1
@@ -79,9 +95,9 @@ struct Brain {
 
 	Brain();
 
-	Inputneuron* input;
+	Inputneuron input[SENSOR_SIZE];
 	std::vector<Hiddenneuron> hidden;
-	Outputneuron* output;
+	Outputneuron output[ACTION_SIZE];
 
 	std::vector<Connection> input_to_hidden;
 	std::vector<Connection> hidden_to_hidden;
@@ -91,20 +107,29 @@ struct Brain {
 	void Behave();
 };
 
+struct Food {
+	BioSimulation* sim;
+
+	int x, y;
+};
 
 struct Organism {
 	BioSimulation* sim;
 
 	int x, y;
-	Vec2 direction;
-	double speed;
+	Vec2 direction = Vec2(0.0);
+	double speed = 0.0;
 	double health;
 	double energy;
+	double duplication = 0.0;
 
 	Brain brain;
 
 	Vec2 distance_to_closest = Vec2(0.0);
 	Organism* closest;
+	
+	Vec2 distance_to_closest_food = Vec2(0.0);
+	Food* closest_food;
 
 	Organism();
 	
@@ -119,20 +144,43 @@ struct Organism {
 struct BioSimulation {
 	INIReader* config_reader;
 
-	int max_x, max_y, max_organisms;
-	double max_energy, max_speed;
+	int max_x, max_y, max_organisms, max_food;
+	double max_energy, max_speed, max_health;
+	double max_duplication;
 	
 	int start_organisms, start_health, start_energy;
 	int start_hidden_neurons, start_ih_connections, start_hh_connections, start_ho_connections, start_io_connections;
+	int start_food;
 
 	int organism_width, organism_height;
 	int organism_color[3];
+	int organism_duplication_amount;
 	double organism_energy_refreshrate;
 
-	double threshold_speed;
+	double (*brain_input_activation_function)(double);
+	double (*brain_hidden_activation_function)(double);
+	double (*brain_output_activation_function)(double);
+
+	double food_per_iteration;
+	double food_refresh;
+	double foodcounter = 0.0;
+
+	double health_loss_rate;
+	
+	bool save_video;
+	int save_length;
+	int save_fps;
+
+	int video_sleep;
+
+	double mutation_add_hidden;
+	double mutation_add_weight;
+	double mutation_weight;
+	double mutation_bias;
 
 	std::vector<Organism*> organisms;
-	
+	std::vector<Food*> food;
+
 	// Init
 	BioSimulation(String);
 
