@@ -4,6 +4,8 @@
 #include "CImg.h"
 #include <string>
 #include <vector>
+#include <iostream>
+#include <fstream>
 #include "INIReader.h"
 #include "Random.h"
 #include "Vector.h"
@@ -105,6 +107,8 @@ struct Brain {
 	std::vector<Connection> hidden_to_output;
 
 	void Behave();
+
+	void SaveToFile(std::ofstream&);
 };
 
 struct Food {
@@ -121,7 +125,8 @@ struct Organism {
 	double speed = 0.0;
 	double health;
 	double energy;
-	double duplication = 0.0;
+	double replication = 0.0;
+	int amount_of_replications = 0;
 
 	Brain brain;
 
@@ -146,7 +151,7 @@ struct BioSimulation {
 
 	int max_x, max_y, max_organisms, max_food;
 	double max_energy, max_speed, max_health;
-	double max_duplication;
+	double max_replication;
 	
 	int start_organisms, start_health, start_energy;
 	int start_hidden_neurons, start_ih_connections, start_hh_connections, start_ho_connections, start_io_connections;
@@ -163,15 +168,24 @@ struct BioSimulation {
 
 	double food_per_iteration;
 	double food_refresh;
+	int food_color[3];
 	double foodcounter = 0.0;
 
 	double health_loss_rate;
 	
+	bool display_simulation;
+	int display_sleep;
+
 	bool save_video;
+	String save_video_filename;
 	int save_length;
 	int save_fps;
 
-	int video_sleep;
+	bool save_last_brains;
+	String save_last_brains_filename;
+
+	bool save_statistics;
+	String save_statistics_filename;
 
 	double mutation_add_hidden;
 	double mutation_add_weight;
@@ -189,6 +203,7 @@ struct BioSimulation {
 
 	// Output 
 	Image CreateImage(); // TODO: Implement this
+	void WriteStatistics(std::ofstream&);
 };
 
 

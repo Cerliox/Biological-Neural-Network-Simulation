@@ -167,7 +167,7 @@ void Organism::Update() {
 		if (CollisionDetection::Collide(this, sim->food[i])) {
 			this->energy += sim->food_refresh;
 			this->health += sim->food_refresh;
-			this->duplication += sim->food_refresh;
+			this->replication += sim->food_refresh;
 			sim->food.erase(sim->food.begin() + i);
 			eat = true;
 			i--;
@@ -198,7 +198,8 @@ void Organism::Inherit(Organism* parent) {
 
 	this->health = sim->max_health;
 	this->energy = sim->max_energy;
-	this->duplication = 0.0;
+	this->replication = 0.0;
+	this->amount_of_replications = 0;
 
 	// Brain-copying
 	memcpy(this->brain.input, parent->brain.input, sizeof(Inputneuron) * SENSOR_SIZE);
@@ -249,28 +250,36 @@ void Organism::Inherit(Organism* parent) {
 	// Add Connection
 	double c_add_weight = Random::RandomDouble(0.0, 1.0);
 	while (c_add_weight <= sim->mutation_add_weight) {
-		int a = Random::RandomInt(0, 4);
-
 		Connection c;
-		if (a == 0) { // Input -> Hidden
-			c.in = Random::RandomInt(0, SENSOR_SIZE);
-			c.out = Random::RandomInt(0, brain.hidden.size());
-			c.weight = Random::RandomDouble(-1.0, 1.0);
-			brain.input_to_hidden.push_back(c);
+		if (brain.hidden.size() != 0) {
+			int a = Random::RandomInt(0, 4);
+
+			if (a == 0 && brain.hidden.size() != 0) { // Input -> Hidden
+				c.in = Random::RandomInt(0, SENSOR_SIZE);
+				c.out = Random::RandomInt(0, brain.hidden.size());
+				c.weight = Random::RandomDouble(-1.0, 1.0);
+				brain.input_to_hidden.push_back(c);
+			}
+			else if (a == 1 && brain.hidden.size() != 0) { // Hidden -> Hidden
+				c.in = Random::RandomInt(0, brain.hidden.size());
+				c.out = Random::RandomInt(0, brain.hidden.size());
+				c.weight = Random::RandomDouble(-1.0, 1.0);
+				brain.hidden_to_hidden.push_back(c);
+			}
+			else if (a == 2 && brain.hidden.size() != 0) { // Hidden -> Output
+				c.in = Random::RandomInt(0, brain.hidden.size());
+				c.out = Random::RandomInt(0, ACTION_SIZE);
+				c.weight = Random::RandomDouble(-1.0, 1.0);
+				brain.hidden_to_output.push_back(c);
+			}
+			else if (a == 3) { // Input -> Output
+				c.in = Random::RandomInt(0, SENSOR_SIZE);
+				c.out = Random::RandomInt(0, ACTION_SIZE);
+				c.weight = Random::RandomDouble(-1.0, 1.0);
+				brain.input_to_output.push_back(c);
+			}
 		}
-		else if (a == 1) { // Hidden -> Hidden
-			c.in = Random::RandomInt(0, brain.hidden.size());
-			c.out = Random::RandomInt(0, brain.hidden.size());
-			c.weight = Random::RandomDouble(-1.0, 1.0);
-			brain.hidden_to_hidden.push_back(c);
-		}
-		else if (a == 2) { // Hidden -> Output
-			c.in = Random::RandomInt(0, brain.hidden.size());
-			c.out = Random::RandomInt(0, ACTION_SIZE);
-			c.weight = Random::RandomDouble(-1.0, 1.0);
-			brain.hidden_to_output.push_back(c);
-		}
-		else if (a == 3) { // Input -> Output
+		else {
 			c.in = Random::RandomInt(0, SENSOR_SIZE);
 			c.out = Random::RandomInt(0, ACTION_SIZE);
 			c.weight = Random::RandomDouble(-1.0, 1.0);

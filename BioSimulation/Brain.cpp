@@ -127,3 +127,34 @@ void Brain::Behave() {
 		output[i].TranslateValue(this->organism);
 	}
 }
+void Brain::SaveToFile(std::ofstream& file) {
+	file << std::string(organism->sim->config_reader->GetString("Inputlayer", "ActivationFunction", "Linear")) << " " << std::string(organism->sim->config_reader->GetString("Hiddenlayer", "ActivationFunction", "Sigmoid")) << " " << std::string(organism->sim->config_reader->GetString("Outputlayer", "ActivationFunction", "Linear")) << std::endl;
+	for (int i = 0; i < SENSOR_SIZE; i++) {
+		file << std::to_string(input[i].bias) << " ";
+	}
+	file << std::endl;
+	for (int i = 0; i < hidden.size(); i++) {
+		file << std::to_string(hidden[i].bias) << " ";
+	}
+	file << std::endl;
+	for (int i = 0; i < ACTION_SIZE; i++) {
+		file << std::to_string(output[i].bias) << " ";
+	}
+	file << std::endl;
+	for (Connection c : input_to_hidden) {
+		file << std::to_string(c.in) << " " << std::to_string(c.out) << " " << std::to_string(c.weight) << "; ";
+	}
+	file << std::endl;
+	for (Connection c : hidden_to_hidden) {
+		file << std::to_string(c.in) << " " << std::to_string(c.out) << " " << std::to_string(c.weight) << "; ";
+	}
+	file << std::endl;
+	for (Connection c : hidden_to_output) {
+		file << std::to_string(c.in) << " " << std::to_string(c.out) << " " << std::to_string(c.weight) << "; ";
+	}
+	file << std::endl;
+	for (Connection c : input_to_output) {
+		file << std::to_string(c.in) << " " << std::to_string(c.out) << " " << std::to_string(c.weight) << "; ";
+	}
+	file << std::endl;
+}
