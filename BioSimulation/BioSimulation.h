@@ -25,8 +25,8 @@ struct Outputneuron;
 enum Sensor {
 	HEALTH, // Get health
 	ENERGY, // Get energy
-	DWX, // Distance to closest wall x
-	DWY, // Distance to closest wall y
+	PX, // Position x from -0.5 -> 0.5
+	PY, // Distance to closest wall y -0.5 -> 0.5
 	DCEX, // Distance to closest organism x
 	DCEY, // Distance to closest organism y
 
@@ -102,6 +102,9 @@ struct Organism {
 	double energy;
 
 	Brain brain;
+
+	Vec2 distance_to_closest = Vec2(0.0);
+	Organism* closest;
 
 	Organism();
 	

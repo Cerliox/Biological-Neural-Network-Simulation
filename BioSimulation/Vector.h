@@ -27,3 +27,4 @@ public:
 	Vec2 operator/(Vec2);
 	Vec2 operator/(double);
 };
+double fminmax(double, double, double);

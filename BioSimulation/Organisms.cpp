@@ -121,13 +121,27 @@ void Organism::Init(BioSimulation* sim) {
 }
 
 void Organism::Update() {
+	double cd = -1.0;
+	for (int i = 0; i < this->sim->organisms.size(); i++) {
+		Organism* o = this->sim->organisms[i];
+		if (o == this)
+			continue;
+		Vec2 dv = Vec2(this->x - o->x, this->y - o->y);
+		double d = dv.Length();
+		if (d < cd || cd == -1.0) {
+			cd = d;
+			this->closest = o;
+			this->distance_to_closest = dv;
+		}
+	}
+
 	this->brain.Behave();
 
-	speed = fmax(speed, this->sim->max_speed);
+	speed = fminmax(speed, -this->sim->max_speed, this->sim->max_speed);
 
 	if (direction.x != 0.0 && direction.y != 0.0 && speed != 0.0 && energy > speed) {
 		this->direction.Normalize();
-
+		
 		Vec2 add = direction * speed;
 
 		this->energy -= speed;
@@ -138,7 +152,7 @@ void Organism::Update() {
 	if (this->energy < this->sim->max_energy) {
 		this->energy += this->sim->organism_energy_refreshrate;
 	}
-	this->energy = fmax(this->energy, this->sim->max_energy);
+	this->energy = fminmax(this->energy, 0.0, this->sim->max_energy);
 
 	if (this->x < 0)
 		this->x = 0;

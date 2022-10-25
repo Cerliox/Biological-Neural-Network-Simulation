@@ -12,6 +12,20 @@ void Inputneuron::GetValue(Brain* brain) {
 	else if (this->sensor == ENERGY) {
 		this->value = brain->organism->energy;
 	}
+	else if (this->sensor == PX) {
+		this->value = ((double) brain->organism->x / (double)brain->organism->sim->max_x) - 0.5;
+	}
+	else if (this->sensor == PY) {
+		this->value = ((double )brain->organism->y / (double)brain->organism->sim->max_y) - 0.5;
+	}
+	else if (this->sensor == DCEX) {
+		if(brain->organism->closest != nullptr)
+			this->value = brain->organism->distance_to_closest.x;
+	}
+	else if (this->sensor == DCEY) {
+		if (brain->organism->closest != nullptr)
+			this->value = brain->organism->distance_to_closest.y;
+	}
 
 	this->value += bias;
 }

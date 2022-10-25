@@ -59,3 +59,6 @@ Vec2 Vec2::operator/(Vec2 other) {
 Vec2 Vec2::operator/(double a) {
 	return Vec2(this->x / a, this->y / a);
 }
+double fminmax(double a, double min, double max) {
+	return fmax(fmin(a, max), min);
+}
