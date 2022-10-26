@@ -5,3 +5,5 @@ TODO:
 Color mutation and different colors
 
 Add Hunter
+
+Complexity in Brain graphs
