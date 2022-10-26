@@ -43,8 +43,8 @@ enum Sensor {
 	ENERGY, // Get energy
 	PX, // Position x from -0.5 -> 0.5
 	PY, // Position y y -0.5 -> 0.5
-	DFX,
-	DFY,
+	DFX, // Distance to closest food x
+	DFY, // Distance to closest food y
 	/*DCEX, // Distance to closest organism x
 	DCEY, // Distance to closest organism */
 
@@ -106,7 +106,10 @@ struct Brain {
 	std::vector<Connection> input_to_output;
 	std::vector<Connection> hidden_to_output;
 
+	double complexity = 0.0;
+
 	void Behave();
+	void ComputeComplexity();
 
 	void SaveToFile(std::ofstream&);
 };
@@ -161,6 +164,9 @@ struct BioSimulation {
 	int organism_color[3];
 	int organism_duplication_amount;
 	double organism_energy_refreshrate;
+	double organism_energy_loss_complexity_multiplier;
+	double organism_energy_loss_speed_multiplier;
+	bool organism_failsafe;
 
 	double (*brain_input_activation_function)(double);
 	double (*brain_hidden_activation_function)(double);
@@ -185,9 +191,11 @@ struct BioSimulation {
 	String save_last_brains_filename;
 
 	bool save_statistics;
+	bool save_extended_statistics;
 	String save_statistics_filename;
 
 	double mutation_add_hidden;
+	double mutation_add_hidden_health_loss;
 	double mutation_add_weight;
 	double mutation_weight;
 	double mutation_bias;

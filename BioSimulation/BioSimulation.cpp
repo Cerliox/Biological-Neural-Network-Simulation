@@ -18,27 +18,30 @@ BioSimulation::BioSimulation(String configfilename) {
 	max_energy = config_reader->GetReal("Max", "Energy", 100.0);
 	max_speed = config_reader->GetReal("Max", "Speed", 5.0);
 	max_health = config_reader->GetReal("Max", "Health", 100.0);
-	max_food = config_reader->GetInteger("Max", "Food", 1000);
-	max_replication = config_reader->GetReal("Max", "Replication", 100.0);
+	max_food = config_reader->GetInteger("Max", "Food", 2500);
+	max_replication = config_reader->GetReal("Max", "Replication", 50.0);
 
 	// Start options
-	start_organisms = config_reader->GetInteger("Start", "Organisms", 100);
+	start_organisms = config_reader->GetInteger("Start", "Organisms", 300);
 	start_health = config_reader->GetReal("Start", "Health", max_health);
 	start_energy = config_reader->GetReal("Start", "Energy", max_energy);
-	start_food = config_reader->GetInteger("Start", "Food", 100);
+	start_food = config_reader->GetInteger("Start", "Food", 300);
 
 	// Organisms
 	organism_width = config_reader->GetInteger("Organism", "Width", 5);
 	organism_height = config_reader->GetInteger("Organism", "Height", 5);
-	organism_energy_refreshrate = config_reader->GetReal("Organism", "Energyrefreshrate", 1.0);
+	organism_energy_refreshrate = config_reader->GetReal("Organism", "Energyrefreshrate", 10.0);
 	organism_duplication_amount = config_reader->GetInteger("Organism", "Replicationamount", 2);
 	organism_color[0] = config_reader->GetInteger("Organism", "R", 0);
 	organism_color[1] = config_reader->GetInteger("Organism", "G", 255);
 	organism_color[2] = config_reader->GetInteger("Organism", "B", 0);
+	organism_energy_loss_complexity_multiplier = config_reader->GetReal("Organism", "Losscomplexitymultiplier", 0.5);
+	organism_energy_loss_speed_multiplier = config_reader->GetReal("Organism", "Lossspeedmultiplier", 1.0);
+	organism_failsafe = config_reader->GetBoolean("Organism", "Failsafe", true);
 
 	// Input layer
 	start_ih_connections = config_reader->GetInteger("Inputlayer", "InputToHidden", 0);
-	start_io_connections = config_reader->GetInteger("Inputlayer", "InputToOutput", 15);
+	start_io_connections = config_reader->GetInteger("Inputlayer", "InputToOutput", 5);
 	ActivationFunctions::GetActivationFunction(config_reader->GetString("Inputlayer", "ActivationFunction", "Linear"), brain_input_activation_function);
 
 	// Hidden layer
@@ -58,17 +61,18 @@ BioSimulation::BioSimulation(String configfilename) {
 	food_color[2] = config_reader->GetInteger("Food", "B", 0);
 	
 	// Health
-	health_loss_rate = config_reader->GetReal("Health", "Lossrate", 1.0);
+	health_loss_rate = config_reader->GetReal("Health", "Lossrate", 3.0);
 
 	// Mutation
-	mutation_add_hidden = config_reader->GetReal("Mutation", "Addhidden", 0.15);
+	mutation_add_hidden = config_reader->GetReal("Mutation", "Addhidden", 0.0);
+	mutation_add_hidden_health_loss = config_reader->GetReal("Mutation", "Addhiddenloss", 25.0);
 	mutation_add_weight = config_reader->GetReal("Mutation", "Addweight", 0.3);
 	mutation_weight = config_reader->GetReal("Mutation", "Weight", 0.1);
 	mutation_bias = config_reader->GetReal("Mutation", "Bias", 0.1);
 
 	// Display
 	display_simulation = config_reader->GetBoolean("Display", "Show", true);
-	display_sleep = config_reader->GetInteger("Display", "Sleep", 50);
+	display_sleep = config_reader->GetInteger("Display", "Sleep", 8);
 
 	// Save
 	save_video = config_reader->GetBoolean("Save", "Video", false);
@@ -80,26 +84,27 @@ BioSimulation::BioSimulation(String configfilename) {
 	save_last_brains_filename = config_reader->GetString("Save", "Brainfilename", "data/brains.txt");
 
 	save_statistics = config_reader->GetBoolean("Save", "Statistics", true);
-	save_statistics_filename = config_reader->GetString("Save", "Statistics", "data/statistics.txt");
+	save_extended_statistics = config_reader->GetBoolean("Save", "Extendedstatistics", false);
+	save_statistics_filename = config_reader->GetString("Save", "Statisticsfilename", "data/statistics.txt");
 
 	// Spawn organsisms
 	int o = std::min(max_organisms, start_organisms);
 
 	organisms.reserve(max_organisms);
-	Organism* s_organisms = new Organism[o];
 	for (int i = 0; i < o; i++) {
-		s_organisms[i].Init(this);
-		organisms.push_back(&s_organisms[i]);
+		Organism* o = new Organism();
+		o->Init(this);
+		organisms.emplace_back(o);
 	}
 	// Spawn food
 	o = std::min(max_food, start_food);
 	food.reserve(max_food);
-	Food* s_food = new Food[o];
 	for (int i = 0; i < o; i++) {
-		s_food[i].x = Random::RandomInt(0, max_x);
-		s_food[i].y = Random::RandomInt(0, max_y);
-		s_food[i].sim = this;
-		food.push_back(&s_food[i]);
+		Food* f = new Food();
+		f->x = Random::RandomInt(0, max_x);
+		f->y = Random::RandomInt(0, max_y);
+		f->sim = this;
+		food.emplace_back(f);
 	}
 	
 }
@@ -123,8 +128,10 @@ Image BioSimulation::CreateImage() {
 }
 void BioSimulation::WriteStatistics(std::ofstream& file) {
 	file << this->organisms.size() << " " << this->food.size() << std::endl;
-	for (Organism* o : this->organisms) {
-		file << o->x << " " << o->y << " " << o->speed << " " << o->health << " " << o->energy << " " << o->replication << " " << o->amount_of_replications << " " << std::endl;
+	if (save_extended_statistics) {
+		for (Organism* o : this->organisms) {
+			file << o->x << " " << o->y << " " << o->speed << " " << o->health << " " << o->energy << " " << o->replication << " " << o->amount_of_replications << " " << std::endl;
+		}
 	}
 }
 
@@ -132,7 +139,14 @@ void BioSimulation::Update() {
 	for (int i = 0; i < organisms.size(); i++) {
 		organisms[i]->Update();
 		if (organisms[i]->health <= 0.0) {
+			if (organism_failsafe && organisms.size() == 1) {
+				organisms[i]->health = 1.0;
+				organisms[i]->energy += 50.0;
+				continue;
+			}
+			Organism* o = organisms[i];
 			organisms.erase(organisms.begin() + i);
+			delete o;
 			i--;
 		}
 		else if (organisms[i]->replication >= max_replication) {

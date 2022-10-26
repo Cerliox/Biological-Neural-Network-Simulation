@@ -9,8 +9,10 @@ int main()
 	CImgList<unsigned char> images;
 	Image curr;
 	std::ofstream file_statistics;
-	if(sim->save_statistics)
+	if (sim->save_statistics) {
 		file_statistics.open(sim->save_statistics_filename, std::ios::out | std::ios::trunc);
+		file_statistics << sim->save_extended_statistics << std::endl;
+	}
 
 	for (int iteration = 0;; iteration++) {
 		curr = sim->CreateImage();
