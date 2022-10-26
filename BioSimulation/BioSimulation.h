@@ -131,6 +131,8 @@ struct Organism {
 	double replication = 0.0;
 	int amount_of_replications = 0;
 
+	int color[3];
+
 	Brain brain;
 
 	Vec2 distance_to_closest = Vec2(0.0);
@@ -161,7 +163,6 @@ struct BioSimulation {
 	int start_food;
 
 	int organism_width, organism_height;
-	int organism_color[3];
 	int organism_duplication_amount;
 	double organism_energy_refreshrate;
 	double organism_energy_loss_complexity_multiplier;
@@ -199,6 +200,7 @@ struct BioSimulation {
 	double mutation_add_weight;
 	double mutation_weight;
 	double mutation_bias;
+	int mutation_colorrate;
 
 	std::vector<Organism*> organisms;
 	std::vector<Food*> food;

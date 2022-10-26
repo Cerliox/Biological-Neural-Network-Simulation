@@ -10,6 +10,10 @@ void Organism::Init(BioSimulation* sim) {
 	energy = sim->start_energy;
 	health = sim->start_health;
 
+	color[0] = Random::RandomInt(0, 255);
+	color[1] = Random::RandomInt(0, 255);
+	color[2] = Random::RandomInt(0, 255);
+
 	this->sim = sim;
 
 	// Neurons
@@ -196,6 +200,10 @@ void Organism::Inherit(Organism* parent) {
 	
 	this->x = parent->x;
 	this->y = parent->y;
+
+	this->color[0] = fminmax(parent->color[0] + Random::RandomInt(-sim->mutation_colorrate, sim->mutation_colorrate), 0, 255);
+	this->color[1] = fminmax(parent->color[1] + Random::RandomInt(-sim->mutation_colorrate, sim->mutation_colorrate), 0, 255);
+	this->color[2] = fminmax(parent->color[2] + Random::RandomInt(-sim->mutation_colorrate, sim->mutation_colorrate), 0, 255);
 
 	this->health = sim->max_health;
 	this->energy = sim->max_energy;

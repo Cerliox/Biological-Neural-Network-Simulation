@@ -32,9 +32,6 @@ BioSimulation::BioSimulation(String configfilename) {
 	organism_height = config_reader->GetInteger("Organism", "Height", 5);
 	organism_energy_refreshrate = config_reader->GetReal("Organism", "Energyrefreshrate", 10.0);
 	organism_duplication_amount = config_reader->GetInteger("Organism", "Replicationamount", 2);
-	organism_color[0] = config_reader->GetInteger("Organism", "R", 0);
-	organism_color[1] = config_reader->GetInteger("Organism", "G", 255);
-	organism_color[2] = config_reader->GetInteger("Organism", "B", 0);
 	organism_energy_loss_complexity_multiplier = config_reader->GetReal("Organism", "Losscomplexitymultiplier", 0.5);
 	organism_energy_loss_speed_multiplier = config_reader->GetReal("Organism", "Lossspeedmultiplier", 1.0);
 	organism_failsafe = config_reader->GetBoolean("Organism", "Failsafe", true);
@@ -69,6 +66,7 @@ BioSimulation::BioSimulation(String configfilename) {
 	mutation_add_weight = config_reader->GetReal("Mutation", "Addweight", 0.3);
 	mutation_weight = config_reader->GetReal("Mutation", "Weight", 0.1);
 	mutation_bias = config_reader->GetReal("Mutation", "Bias", 0.1);
+	mutation_colorrate = config_reader->GetInteger("Mutation", "Color", 10);
 
 	// Display
 	display_simulation = config_reader->GetBoolean("Display", "Show", true);
@@ -121,7 +119,7 @@ Image BioSimulation::CreateImage() {
 	}
 	for (int i = 0; i < organisms.size(); i++) {
 		Organism* o = organisms[i];
-		img.draw_rectangle(o->x, o->y, o->x + organism_width, o->y + organism_height, organism_color);
+		img.draw_rectangle(o->x, o->y, o->x + organism_width, o->y + organism_height, o->color);
 	}
 
 	return img;
