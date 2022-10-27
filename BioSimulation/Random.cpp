@@ -11,5 +11,7 @@ double Random::RandomDouble(double min, double max) {
 }
 int Random::RandomInt(int min, int max)
 {
-	return min + rand() % ((max) - min);
+	if (max - min == 0)
+		return 0;
+	return min + rand() % (max - min);
 }

@@ -201,9 +201,7 @@ void Organism::Inherit(Organism* parent) {
 	this->x = parent->x;
 	this->y = parent->y;
 
-	this->color[0] = fminmax(parent->color[0] + Random::RandomInt(-sim->mutation_colorrate, sim->mutation_colorrate), 0, 255);
-	this->color[1] = fminmax(parent->color[1] + Random::RandomInt(-sim->mutation_colorrate, sim->mutation_colorrate), 0, 255);
-	this->color[2] = fminmax(parent->color[2] + Random::RandomInt(-sim->mutation_colorrate, sim->mutation_colorrate), 0, 255);
+	double mutation_color_change = 0.0;
 
 	this->health = sim->max_health;
 	this->energy = sim->max_energy;
@@ -225,42 +223,57 @@ void Organism::Inherit(Organism* parent) {
 	double c_add_hidden = Random::RandomDouble(0.0, 1.0);
 	if (c_add_hidden <= sim->mutation_add_hidden) {
 		this->brain.hidden.push_back(Hiddenneuron());
-		this->health -= sim->mutation_add_hidden_health_loss;
+		mutation_color_change += sim->mutation_color_add_hidden;
 	}
 
 	// Bias
 	for (int i = 0; i < SENSOR_SIZE; i++) {
-		brain.input[i].bias += Random::RandomDouble(-sim->mutation_bias, sim->mutation_bias);
+		double d = Random::RandomDouble(-sim->mutation_bias, sim->mutation_bias);
+		brain.input[i].bias += d;
+		mutation_color_change += abs(d);
 	}
 	for (int i = 0; i < brain.hidden.size(); i++) {
-		brain.hidden[i].bias += Random::RandomDouble(-sim->mutation_bias, sim->mutation_bias);
+		double d = Random::RandomDouble(-sim->mutation_bias, sim->mutation_bias);
+		brain.hidden[i].bias += d;
+		mutation_color_change += abs(d);
 	}
 	for (int i = 0; i < ACTION_SIZE; i++) {
-		brain.output[i].bias += Random::RandomDouble(-sim->mutation_bias, sim->mutation_bias);
+		double d = Random::RandomDouble(-sim->mutation_bias, sim->mutation_bias);
+		brain.output[i].bias += d;
+		mutation_color_change += abs(d);
 	}
 
 	// Weights
 	for (int i = 0; i < this->brain.input_to_hidden.size(); i++) {
 		Connection* c = &this->brain.input_to_hidden[i];
-		c->weight += Random::RandomDouble(-sim->mutation_weight, sim->mutation_weight);
+		double d = Random::RandomDouble(-sim->mutation_weight, sim->mutation_weight);
+		c->weight += d;
+		mutation_color_change += abs(d);
 	}
 	for (int i = 0; i < this->brain.hidden_to_hidden.size(); i++) {
 		Connection* c = &this->brain.hidden_to_hidden[i];
-		c->weight += Random::RandomDouble(-sim->mutation_weight, sim->mutation_weight);
+		double d = Random::RandomDouble(-sim->mutation_weight, sim->mutation_weight);
+		c->weight += d;
+		mutation_color_change += abs(d);
 	}
 	for (int i = 0; i < this->brain.hidden_to_output.size(); i++) {
 		Connection* c = &this->brain.hidden_to_output[i];
-		c->weight += Random::RandomDouble(-sim->mutation_weight, sim->mutation_weight);
+		double d = Random::RandomDouble(-sim->mutation_weight, sim->mutation_weight);
+		c->weight += d;
+		mutation_color_change += abs(d);
 	}
 	for (int i = 0; i < this->brain.input_to_output.size(); i++) {
 		Connection* c = &this->brain.input_to_output[i];
-		c->weight += Random::RandomDouble(-sim->mutation_weight, sim->mutation_weight);
+		double d = Random::RandomDouble(-sim->mutation_weight, sim->mutation_weight);
+		c->weight += d;
+		mutation_color_change += abs(d);
 	}
 
 	// Add Connection
 	double c_add_weight = Random::RandomDouble(0.0, 1.0);
 	while (c_add_weight <= sim->mutation_add_weight) {
 		Connection c;
+		mutation_color_change += sim->mutation_color_add_weight;
 		if (brain.hidden.size() != 0) {
 			int a = Random::RandomInt(0, 4);
 
@@ -338,5 +351,23 @@ void Organism::Inherit(Organism* parent) {
 
 		c_add_weight = Random::RandomDouble(0.0, 1.0);
 	}
+	mutation_color_change = fminmax(mutation_color_change * sim->mutation_color_change_multiplier, 0.0, sim->mutation_color_max_change);
+	double r = Random::RandomInt(-mutation_color_change, mutation_color_change);
+	if (parent->color[0] + r > 255 || parent->color[0] - r < 0)
+		r = -r;
+	this->color[0] = fminmax(parent->color[0] + r, 0, 255);
+	mutation_color_change -= fmax(0.0, abs(r));
+
+	r = Random::RandomInt(-mutation_color_change, mutation_color_change);
+	if (parent->color[1] + r > 255 || parent->color[0] - r < 0)
+		r = -r;
+	this->color[1] = fminmax(parent->color[1] + r, 0, 255);
+	mutation_color_change -= fmax(0.0, abs(r));
+
+	r = Random::RandomInt(-mutation_color_change, mutation_color_change);
+	if (parent->color[2] + r > 255 || parent->color[0] - r < 0)
+		r = -r;
+	this->color[2] = fminmax(parent->color[2] + r, 0, 255);
+
 	this->brain.ComputeComplexity();
 }

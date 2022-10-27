@@ -153,6 +153,13 @@ struct Organism {
 
 struct BioSimulation {
 	INIReader* config_reader;
+	String configfilename;
+	int curr_iteration = 0;
+	int curr_reset = 0;
+
+	bool auto_reset;
+	int auto_reset_only_one_max;
+	int auto_reset_only_one_counter = 0;
 
 	int max_x, max_y, max_organisms, max_food;
 	double max_energy, max_speed, max_health;
@@ -183,6 +190,14 @@ struct BioSimulation {
 	bool display_simulation;
 	int display_sleep;
 
+	bool display_statistics;
+	std::vector<int> display_statistics_organism_data;
+	std::vector<int> display_statistics_food_data;
+	int display_statistics_data_length;
+	int display_statistics_size_x;
+	int display_statistics_max_y;
+
+
 	bool save_video;
 	String save_video_filename;
 	int save_length;
@@ -196,10 +211,13 @@ struct BioSimulation {
 	String save_statistics_filename;
 
 	double mutation_add_hidden;
-	double mutation_add_hidden_health_loss;
 	double mutation_add_weight;
 	double mutation_weight;
 	double mutation_bias;
+	double mutation_color_add_hidden;
+	double mutation_color_add_weight;
+	double mutation_color_max_change;
+	double mutation_color_change_multiplier;
 	int mutation_colorrate;
 
 	std::vector<Organism*> organisms;
@@ -209,7 +227,10 @@ struct BioSimulation {
 	BioSimulation(String);
 
 	// Running
-	void Update(); // TODO: Update
+	void LoadConfig();
+	void Spawn();
+	void Update();
+	void Reset();
 
 	// Output 
 	Image CreateImage(); // TODO: Implement this

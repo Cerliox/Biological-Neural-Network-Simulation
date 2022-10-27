@@ -15,6 +15,7 @@ int main()
 	}
 
 	for (int iteration = 0;; iteration++) {
+		sim->Update();
 		curr = sim->CreateImage();
 
 		if (sim->save_statistics) {
@@ -27,12 +28,13 @@ int main()
 		}
 		if (sim->display_simulation) {
 			disp.display(curr);
+			if (disp.is_keySPACE()) {
+				sim->Reset();
+			}
 			if (disp.is_closed())
 				break;
 			Sleep(sim->display_sleep);
 		}
-
-		sim->Update();
 	}
 
 	if (sim->save_statistics) {
