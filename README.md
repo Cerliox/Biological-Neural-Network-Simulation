@@ -10,4 +10,6 @@ Complexity in Brain graphs and showing the most complex one
 
 Better analysis
 
-Video lifetime analysis
+Video lifetime analysis of food also
+
+Save and load simulation
