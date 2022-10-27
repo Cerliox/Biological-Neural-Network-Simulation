@@ -13,3 +13,5 @@ Better analysis
 Video lifetime analysis of food also
 
 Save and load simulation
+
+They r getting black for no reason
