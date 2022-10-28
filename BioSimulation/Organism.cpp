@@ -156,7 +156,7 @@ void Organism::Update() {
 		
 		Vec2 add = direction * speed;
 
-		this->energy -= speed * sim->organism_energy_loss_speed_multiplier;
+		this->energy -= pow(speed, 2) * sim->organism_energy_loss_speed_multiplier;
 
 		this->x += (int)add.x;
 		this->y += (int)add.y;
@@ -219,11 +219,34 @@ void Organism::Inherit(Organism* parent) {
 	this->brain.input_to_output = parent->brain.input_to_output;
 	
 	// Mutations
+	// Remove hidden
+	/*
+	Here is an error cause if we are removing a neuron every connection connects to one neuron after the deleted neuron.
+	Is should do a new neuron system where connections don't hold the index but rather a pointer to the neuron. For that i need an overall neuron class
+	*/
+	double c_remove_hidden = Random::RandomDouble(0.0, 1.0);
+	if (c_remove_hidden <= sim->mutation_remove_hidden && brain.hidden.size() >= 1) {
+		int index = Random::RandomInt(0, brain.hidden.size());
+		for (int i = 0; i < brain.input_to_hidden.size(); i++) {
+			if (brain.input_to_hidden[i].in == index || brain.input_to_hidden[i].out == index)
+				brain.input_to_hidden.erase(brain.input_to_hidden.begin() + i);
+		}
+		for (int i = 0; i < brain.hidden_to_hidden.size(); i++) {
+			if (brain.hidden_to_hidden[i].in == index || brain.hidden_to_hidden[i].out == index)
+				brain.hidden_to_hidden.erase(brain.hidden_to_hidden.begin() + i);
+		}
+		for (int i = 0; i < brain.hidden_to_output.size(); i++) {
+			if (brain.hidden_to_output[i].in == index || brain.hidden_to_output[i].out == index)
+				brain.hidden_to_output.erase(brain.hidden_to_output.begin() + i);
+		}
+		brain.hidden.erase(brain.hidden.begin() + index);
+		mutation_color_change += sim->mutation_color_change_hidden;
+	}
 	// Add hidden
 	double c_add_hidden = Random::RandomDouble(0.0, 1.0);
 	if (c_add_hidden <= sim->mutation_add_hidden) {
 		this->brain.hidden.push_back(Hiddenneuron());
-		mutation_color_change += sim->mutation_color_add_hidden;
+		mutation_color_change += sim->mutation_color_change_hidden;
 	}
 
 	// Bias
@@ -273,7 +296,7 @@ void Organism::Inherit(Organism* parent) {
 	double c_add_weight = Random::RandomDouble(0.0, 1.0);
 	while (c_add_weight <= sim->mutation_add_weight) {
 		Connection c;
-		mutation_color_change += sim->mutation_color_add_weight;
+		mutation_color_change += sim->mutation_color_change_weight;
 		if (brain.hidden.size() != 0) {
 			int a = Random::RandomInt(0, 4);
 
@@ -353,19 +376,21 @@ void Organism::Inherit(Organism* parent) {
 	}
 	mutation_color_change = fminmax(mutation_color_change * sim->mutation_color_change_multiplier, 0.0, sim->mutation_color_max_change);
 	double r = Random::RandomInt(-mutation_color_change, mutation_color_change);
-	if (parent->color[0] + r > 255 || parent->color[0] - r < 0)
+	if (parent->color[0] + r > 255 || parent->color[0] + r < 0)
 		r = -r;
 	this->color[0] = fminmax(parent->color[0] + r, 0, 255);
-	mutation_color_change -= fmax(0.0, abs(r));
+	mutation_color_change -= abs(r);
+	mutation_color_change = fmax(0.0, mutation_color_change);
 
 	r = Random::RandomInt(-mutation_color_change, mutation_color_change);
-	if (parent->color[1] + r > 255 || parent->color[0] - r < 0)
+	if (parent->color[1] + r > 255 || parent->color[0] + r < 0)
 		r = -r;
 	this->color[1] = fminmax(parent->color[1] + r, 0, 255);
-	mutation_color_change -= fmax(0.0, abs(r));
+	mutation_color_change -= abs(r);
+	mutation_color_change = fmax(0.0, mutation_color_change);
 
 	r = Random::RandomInt(-mutation_color_change, mutation_color_change);
-	if (parent->color[2] + r > 255 || parent->color[0] - r < 0)
+	if (parent->color[2] + r > 255 || parent->color[0] + r < 0)
 		r = -r;
 	this->color[2] = fminmax(parent->color[2] + r, 0, 255);
 

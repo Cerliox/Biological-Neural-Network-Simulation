@@ -6,6 +6,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <chrono>
 #include "INIReader.h"
 #include "Random.h"
 #include "Vector.h"
@@ -17,6 +18,27 @@
 #define EULER 2.7182818284590452353602874
 
 using namespace cimg_library;
+
+struct Clock {
+private:
+	std::chrono::high_resolution_clock::time_point start;
+public:
+	void Start() {
+		start = std::chrono::high_resolution_clock::now();
+	}
+	long long ElapsedMicroseconds() {
+		return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
+	}
+	long long ElapsedMilliseconds() {
+		return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
+	}
+	long long ElapsedNanoseconds() {
+		return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start).count();
+	}
+	long long ElapsedSeconds() {
+		return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - start).count();
+	}
+};
 
 // Defautl classes and structs
 struct Organism;
@@ -156,6 +178,7 @@ struct BioSimulation {
 	String configfilename;
 	int curr_iteration = 0;
 	int curr_reset = 0;
+	long iteration_time_ms;
 
 	bool auto_reset;
 	int auto_reset_only_one_max;
@@ -211,11 +234,12 @@ struct BioSimulation {
 	String save_statistics_filename;
 
 	double mutation_add_hidden;
+	double mutation_remove_hidden;
 	double mutation_add_weight;
 	double mutation_weight;
 	double mutation_bias;
-	double mutation_color_add_hidden;
-	double mutation_color_add_weight;
+	double mutation_color_change_hidden;
+	double mutation_color_change_weight;
 	double mutation_color_max_change;
 	double mutation_color_change_multiplier;
 	int mutation_colorrate;

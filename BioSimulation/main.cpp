@@ -6,6 +6,7 @@ int main()
 	BioSimulation* sim = new BioSimulation("Config.ini");
 
 	CImgDisplay disp;
+	disp.set_title("BioSimulation");
 	CImgList<unsigned char> images;
 	Image curr;
 	std::ofstream file_statistics;
@@ -14,9 +15,10 @@ int main()
 		file_statistics << sim->save_extended_statistics << std::endl;
 	}
 
+	Clock c;
 	for (int iteration = 0;; iteration++) {
+		c.Start();
 		sim->Update();
-		curr = sim->CreateImage();
 
 		if (sim->save_statistics) {
 			sim->WriteStatistics(file_statistics);
@@ -26,6 +28,10 @@ int main()
 			if (iteration >= sim->save_fps * sim->save_length)
 				break;
 		}
+		sim->iteration_time_ms = c.ElapsedMilliseconds();
+
+
+		curr = sim->CreateImage();
 		if (sim->display_simulation) {
 			disp.display(curr);
 			if (disp.is_keySPACE()) {

@@ -34,7 +34,7 @@ void BioSimulation::LoadConfig() {
 	max_y = config_reader->GetInteger("Max", "y", 800);
 	max_organisms = config_reader->GetInteger("Max", "Organisms", 500);
 	max_energy = config_reader->GetReal("Max", "Energy", 100.0);
-	max_speed = config_reader->GetReal("Max", "Speed", 5.0);
+	max_speed = config_reader->GetReal("Max", "Speed", 7.0);
 	max_health = config_reader->GetReal("Max", "Health", 100.0);
 	max_food = config_reader->GetInteger("Max", "Food", 2500);
 	max_replication = config_reader->GetReal("Max", "Replication", 50.0);
@@ -49,11 +49,11 @@ void BioSimulation::LoadConfig() {
 	organism_width = config_reader->GetInteger("Organism", "Width", 5);
 	organism_height = config_reader->GetInteger("Organism", "Height", 5);
 	organism_energy_refreshrate = config_reader->GetReal("Organism", "Energyrefreshrate", 10.0);
-	organism_duplication_amount = config_reader->GetInteger("Organism", "Replicationamount", 2);
-	organism_energy_loss_complexity_multiplier = config_reader->GetReal("Organism", "Losscomplexitymultiplier", 0.5);
-	organism_energy_loss_speed_multiplier = config_reader->GetReal("Organism", "Lossspeedmultiplier", 1.0);
+	organism_duplication_amount = config_reader->GetInteger("Organism", "Replicationamount", 3);
+	organism_energy_loss_complexity_multiplier = config_reader->GetReal("Organism", "Losscomplexitymultiplier", 0.1);
+	organism_energy_loss_speed_multiplier = config_reader->GetReal("Organism", "Lossspeedmultiplier", 0.01);
 	organism_failsafe = config_reader->GetBoolean("Organism", "Failsafe", true);
-	health_loss_rate = config_reader->GetReal("Organism", "Healthloss", 2.0);
+	health_loss_rate = config_reader->GetReal("Organism", "Healthloss", 3.0);
 
 	// Input layer
 	start_ih_connections = config_reader->GetInteger("Inputlayer", "InputToHidden", 0);
@@ -71,20 +71,21 @@ void BioSimulation::LoadConfig() {
 
 	// Food
 	food_per_iteration = config_reader->GetReal("Food", "PerIteration", 2.5);
-	food_refresh = config_reader->GetReal("Food", "Refresh", 25.0);
+	food_refresh = config_reader->GetReal("Food", "Refresh", 50.0);
 	food_color[0] = config_reader->GetInteger("Food", "R", 255);
 	food_color[1] = config_reader->GetInteger("Food", "G", 0);
 	food_color[2] = config_reader->GetInteger("Food", "B", 0);
 
 	// Mutation
 	mutation_add_hidden = config_reader->GetReal("Mutation", "Addhidden", 0.1);
+	mutation_remove_hidden = config_reader->GetReal("Mutation", "Removehidden", 0.05);
 	mutation_add_weight = config_reader->GetReal("Mutation", "Addweight", 0.1);
 	mutation_weight = config_reader->GetReal("Mutation", "Weight", 0.2);
 	mutation_bias = config_reader->GetReal("Mutation", "Bias", 0.2);
-	mutation_color_max_change = config_reader->GetReal("Mutation", "Maxcolorchange", 20.0);
-	mutation_color_change_multiplier = config_reader->GetReal("Mutation", "Colorchangemultiplier", 20.0);
-	mutation_color_add_hidden = config_reader->GetReal("Mutation", "Coloraddhidden", 5.0);
-	mutation_color_add_weight = config_reader->GetReal("Mutation", "Coloraddweight", 2.0);
+	mutation_color_max_change = config_reader->GetReal("Mutation", "Maxcolorchange", 40.0);
+	mutation_color_change_multiplier = config_reader->GetReal("Mutation", "Colorchangemultiplier", 10.0);
+	mutation_color_change_hidden = config_reader->GetReal("Mutation", "Coloraddhidden", 5.0);
+	mutation_color_change_weight = config_reader->GetReal("Mutation", "Coloraddweight", 2.0);
 
 	// Display
 	display_simulation = config_reader->GetBoolean("Display", "Show", true);
@@ -180,10 +181,11 @@ Image BioSimulation::CreateImage() {
 			stat_img.draw_line(0, max_y - i / step_y, display_statistics_size_x, max_y - i / step_y, black, 1.0);
 			stat_img.draw_text(0, max_y - i / step_y - 15, std::to_string(i).c_str(), black);
 		}
-		stat_img.draw_text(display_statistics_size_x - 55, 5, "Organism", blue);
-		stat_img.draw_text(display_statistics_size_x - 30, 18, "Food", red);
-		stat_img.draw_text(5, 5, std::to_string(curr_iteration).c_str(), black);
+		stat_img.draw_text(display_statistics_size_x - 120, 5, "Organisms", blue);
+		stat_img.draw_text(display_statistics_size_x - 90, 18, "Food", red);
+		stat_img.draw_text(5, 5, ("Iteration: " + std::to_string(curr_iteration)).c_str(), black);
 		stat_img.draw_text(5, 18, ("Reset: " + std::to_string(curr_reset)).c_str(), black);
+		stat_img.draw_text(5, 31, ("Time: " + std::to_string(iteration_time_ms) + "ms").c_str(), black);
 
 		Image output;
 		output.append(img, 'x');
@@ -211,6 +213,8 @@ void BioSimulation::Update() {
 			if (organism_failsafe && organisms.size() == 1) {
 				organisms[i]->health = 1.0;
 				organisms[i]->energy += 50.0;
+				organisms[i]->x = Random::RandomInt(0, max_x);
+				organisms[i]->y = Random::RandomInt(0, max_y);
 				continue;
 			}
 			Organism* o = organisms[i];
