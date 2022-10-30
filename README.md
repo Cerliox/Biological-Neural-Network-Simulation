@@ -75,6 +75,10 @@ Just run this command:
 
 (https://cmake.org/)
 
+OR
+
+Download the .exe file and run it under windows.
+
 ## Settings
 You can change a lot inside the ``Config.ini`` file. In this example the default settings are used
 
