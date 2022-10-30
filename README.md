@@ -1,4 +1,4 @@
-# :earth_americas:Biological Neural Network Simulation:earth_americas:
+# :herb:Biological Neural Network Simulation:herb:
 This is a project made for fun so don't expect well-documented code.
 ## What is this?
 This simulation consists of small creatures called Organisms and food. The Organisms are updated every frame independant from any other Organism.
