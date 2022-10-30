@@ -34,10 +34,10 @@ void BioSimulation::LoadConfig() {
 	max_y = config_reader->GetInteger("Max", "y", 800);
 	max_organisms = config_reader->GetInteger("Max", "Organisms", 500);
 	max_energy = config_reader->GetReal("Max", "Energy", 100.0);
-	max_speed = config_reader->GetReal("Max", "Speed", 7.0);
+	max_speed = config_reader->GetReal("Max", "Speed", 2.0);
 	max_health = config_reader->GetReal("Max", "Health", 100.0);
 	max_food = config_reader->GetInteger("Max", "Food", 2500);
-	max_replication = config_reader->GetReal("Max", "Replication", 50.0);
+	max_replication = config_reader->GetReal("Max", "Replication", 100.0);
 
 	// Start options
 	start_organisms = config_reader->GetInteger("Start", "Organisms", 300);
@@ -49,11 +49,11 @@ void BioSimulation::LoadConfig() {
 	organism_width = config_reader->GetInteger("Organism", "Width", 5);
 	organism_height = config_reader->GetInteger("Organism", "Height", 5);
 	organism_energy_refreshrate = config_reader->GetReal("Organism", "Energyrefreshrate", 10.0);
-	organism_duplication_amount = config_reader->GetInteger("Organism", "Replicationamount", 3);
+	organism_duplication_amount = config_reader->GetInteger("Organism", "Replicationamount", 1);
 	organism_energy_loss_complexity_multiplier = config_reader->GetReal("Organism", "Losscomplexitymultiplier", 0.1);
 	organism_energy_loss_speed_multiplier = config_reader->GetReal("Organism", "Lossspeedmultiplier", 0.01);
 	organism_failsafe = config_reader->GetBoolean("Organism", "Failsafe", true);
-	health_loss_rate = config_reader->GetReal("Organism", "Healthloss", 3.0);
+	organism_health_loss_rate = config_reader->GetReal("Organism", "Healthloss", 1.0);
 
 	// Input layer
 	start_ih_connections = config_reader->GetInteger("Inputlayer", "InputToHidden", 0);
@@ -61,27 +61,31 @@ void BioSimulation::LoadConfig() {
 	ActivationFunctions::GetActivationFunction(config_reader->GetString("Inputlayer", "ActivationFunction", "Linear"), brain_input_activation_function);
 
 	// Hidden layer
-	start_hidden_neurons = config_reader->GetInteger("Hiddenlayer", "Neurons", 0);
+	start_hidden_neurons = config_reader->GetInteger("Hiddenlayer", "Neurons", 5);
 	start_hh_connections = config_reader->GetInteger("Hiddenlayer", "HiddenToHidden", 0);
 	start_ho_connections = config_reader->GetInteger("Hiddenlayer", "HiddenToOutput", 0);
 	ActivationFunctions::GetActivationFunction(config_reader->GetString("Hiddenlayer", "ActivationFunction", "Sigmoid"), brain_hidden_activation_function);
+	max_hidden_neurons = config_reader->GetInteger("Hiddenlayer", "Maxneurons", 5);
+	start_hidden_neurons = fmin(max_hidden_neurons, start_hidden_neurons);
 
 	// Output layer
 	ActivationFunctions::GetActivationFunction(config_reader->GetString("Outputlayer", "ActivationFunction", "Linear"), brain_output_activation_function);
 
 	// Food
-	food_per_iteration = config_reader->GetReal("Food", "PerIteration", 2.5);
+	food_per_iteration = config_reader->GetReal("Food", "PerIteration", 1.0);
 	food_refresh = config_reader->GetReal("Food", "Refresh", 50.0);
 	food_color[0] = config_reader->GetInteger("Food", "R", 255);
 	food_color[1] = config_reader->GetInteger("Food", "G", 0);
 	food_color[2] = config_reader->GetInteger("Food", "B", 0);
 
 	// Mutation
-	mutation_add_hidden = config_reader->GetReal("Mutation", "Addhidden", 0.1);
-	mutation_remove_hidden = config_reader->GetReal("Mutation", "Removehidden", 0.05);
-	mutation_add_weight = config_reader->GetReal("Mutation", "Addweight", 0.1);
-	mutation_weight = config_reader->GetReal("Mutation", "Weight", 0.2);
-	mutation_bias = config_reader->GetReal("Mutation", "Bias", 0.2);
+	mutation_add_hidden = config_reader->GetReal("Mutation", "Addhidden", 0.0);
+	mutation_remove_hidden = config_reader->GetReal("Mutation", "Removehidden", 0.0);
+	mutation_add_weight = config_reader->GetReal("Mutation", "Addweight", 0.3);
+	mutation_change_weight = config_reader->GetReal("Mutation", "Changeweight", 0.4);
+	mutation_change_weight_rate = config_reader->GetReal("Mutation", "Weightrate", 0.5);
+	mutation_change_bias = config_reader->GetReal("Mutation", "Changebias", 0.3);
+	mutation_change_bias_rate = config_reader->GetReal("Mutation", "Biasrate", 0.5);
 	mutation_color_max_change = config_reader->GetReal("Mutation", "Maxcolorchange", 40.0);
 	mutation_color_change_multiplier = config_reader->GetReal("Mutation", "Colorchangemultiplier", 10.0);
 	mutation_color_change_hidden = config_reader->GetReal("Mutation", "Coloraddhidden", 5.0);
@@ -97,17 +101,19 @@ void BioSimulation::LoadConfig() {
 	display_statistics_max_y = config_reader->GetInteger("Display", "Statisticsmaxy", 800);
 
 	// Save
+	save_folder = config_reader->GetString("Save", "Folder", "data");
+
 	save_video = config_reader->GetBoolean("Save", "Video", false);
-	save_video_filename = config_reader->GetString("Save", "Videofilename", "data/out.mp4");
+	save_video_filename = config_reader->GetString("Save", "Videofilename", "out.mp4");
 	save_length = config_reader->GetInteger("Save", "Length", 10);
 	save_fps = config_reader->GetInteger("Save", "FPS", 25);
 
 	save_last_brains = config_reader->GetBoolean("Save", "Brain", true);
-	save_last_brains_filename = config_reader->GetString("Save", "Brainfilename", "data/brains.txt");
+	save_last_brains_filename = config_reader->GetString("Save", "Brainfilename", "brains.txt");
 
 	save_statistics = config_reader->GetBoolean("Save", "Statistics", false);
 	save_extended_statistics = config_reader->GetBoolean("Save", "Extendedstatistics", false);
-	save_statistics_filename = config_reader->GetString("Save", "Statisticsfilename", "data/statistics.txt");
+	save_statistics_filename = config_reader->GetString("Save", "Statisticsfilename", "statistics.txt");
 
 	// Auto reset
 	auto_reset = config_reader->GetBoolean("Autoreset", "Active", true);
@@ -219,6 +225,8 @@ void BioSimulation::Update() {
 			}
 			Organism* o = organisms[i];
 			organisms.erase(organisms.begin() + i);
+			for (int i = 0; i < o->brain.hidden.size(); i++)
+				delete o->brain.hidden[i];
 			delete o;
 			i--;
 		}

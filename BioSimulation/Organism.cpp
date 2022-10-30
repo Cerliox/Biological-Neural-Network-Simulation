@@ -22,19 +22,22 @@ void Organism::Init(BioSimulation* sim) {
 
 	for (int i = 0; i < ACTION_SIZE; i++)
 		this->brain.output[i].action = (Action) i;
+	
+	this->brain.hidden.reserve(this->sim->max_hidden_neurons);
 
 	Connection* connections;
 	if (this->sim->start_hidden_neurons != 0) {
-		this->brain.hidden.reserve(this->sim->start_hidden_neurons);
-		for (int i = 0; i < this->sim->start_hidden_neurons; i++)
-			this->brain.hidden.emplace_back(Hiddenneuron());
+		for (int i = 0; i < this->sim->start_hidden_neurons; i++) {
+			Neuron* n = new Neuron();
+			this->brain.hidden.emplace_back(n);
+		}
 
 		// Connections
 		//	Input -> Hidden
 		connections = new Connection[this->sim->start_ih_connections];
 		for (int i = 0; i < this->sim->start_ih_connections; i++) {
-			connections[i].in = Random::RandomInt(0, SENSOR_SIZE);
-			connections[i].out = Random::RandomInt(0, this->brain.hidden.size());
+			connections[i].in = brain.GetRandomInputneuron();
+			connections[i].out = brain.GetRandomHiddenneuron();
 			connections[i].weight = Random::RandomDouble(-1.0f, 1.0f);
 		}
 		for (int i = 0; i < this->sim->start_ih_connections; i++) {
@@ -55,8 +58,8 @@ void Organism::Init(BioSimulation* sim) {
 		// Hidden -> Hidden
 		connections = new Connection[this->sim->start_hh_connections];
 		for (int i = 0; i < this->sim->start_hh_connections; i++) {
-			connections[i].in = Random::RandomInt(0, this->brain.hidden.size());
-			connections[i].out = Random::RandomInt(0, this->brain.hidden.size());
+			connections[i].in = brain.GetRandomHiddenneuron();
+			connections[i].out = brain.GetRandomHiddenneuron();
 			connections[i].weight = Random::RandomDouble(-1.0f, 1.0f);
 		}
 		for (int i = 0; i < this->sim->start_hh_connections; i++) {
@@ -77,8 +80,8 @@ void Organism::Init(BioSimulation* sim) {
 		// Hidden -> Output
 		connections = new Connection[this->sim->start_ho_connections];
 		for (int i = 0; i < this->sim->start_ho_connections; i++) {
-			connections[i].in = Random::RandomInt(0, this->brain.hidden.size());
-			connections[i].out = Random::RandomInt(0, ACTION_SIZE);
+			connections[i].in = brain.GetRandomHiddenneuron();
+			connections[i].out = brain.GetRandomOutputneuron();
 			connections[i].weight = Random::RandomDouble(-1.0f, 1.0f);
 		}
 		for (int i = 0; i < this->sim->start_ho_connections; i++) {
@@ -99,8 +102,8 @@ void Organism::Init(BioSimulation* sim) {
 	// Input -> Output
 	connections = new Connection[this->sim->start_io_connections];
 	for (int i = 0; i < this->sim->start_io_connections; i++) {
-		connections[i].in = Random::RandomInt(0, SENSOR_SIZE);
-		connections[i].out = Random::RandomInt(0, ACTION_SIZE);
+		connections[i].in = brain.GetRandomInputneuron();
+		connections[i].out = brain.GetRandomOutputneuron();
 		connections[i].weight = Random::RandomDouble(-1.0f, 1.0f);
 	}
 	for (int i = 0; i < this->sim->start_io_connections; i++) {
@@ -161,10 +164,10 @@ void Organism::Update() {
 		this->x += (int)add.x;
 		this->y += (int)add.y;
 	}
-	this->health -= sim->health_loss_rate;
+	this->health -= sim->organism_health_loss_rate;
 	energy -= this->brain.complexity * sim->organism_energy_loss_complexity_multiplier;
 	if (energy <= 0.0) {
-		this->health -= sim->health_loss_rate;
+		this->health -= sim->organism_health_loss_rate;
 	}
 	this->energy += sim->organism_energy_refreshrate;
 
@@ -209,100 +212,159 @@ void Organism::Inherit(Organism* parent) {
 	this->amount_of_replications = 0;
 
 	// Brain-copying
-	memcpy(this->brain.input, parent->brain.input, sizeof(Inputneuron) * SENSOR_SIZE);
-	memcpy(this->brain.output, parent->brain.output, sizeof(Inputneuron) * ACTION_SIZE);
-	this->brain.hidden = parent->brain.hidden;
+	memcpy(this->brain.input, parent->brain.input, sizeof(Neuron) * SENSOR_SIZE);
+	memcpy(this->brain.output, parent->brain.output, sizeof(Neuron) * ACTION_SIZE);
+	this->brain.hidden.reserve(sim->max_hidden_neurons);
+	for (int i = 0; i < parent->brain.hidden.size(); i++) {
+		Neuron* n = new Neuron();
+		n->bias = parent->brain.hidden[i]->bias;
+		this->brain.hidden.emplace_back(n);
+	}
 	
-	this->brain.input_to_hidden = parent->brain.input_to_hidden;
-	this->brain.hidden_to_hidden = parent->brain.hidden_to_hidden;
-	this->brain.hidden_to_output = parent->brain.hidden_to_output;
-	this->brain.input_to_output = parent->brain.input_to_output;
+	this->brain.input_to_hidden.reserve(parent->brain.input_to_hidden.size());
+	for (Connection c : parent->brain.input_to_hidden) {
+		Connection c2;
+		c2.in = &this->brain.input[parent->brain.FindInput(c.in)];
+		c2.out = this->brain.hidden[parent->brain.FindHidden(c.out)];
+		c2.weight = c.weight;
+		this->brain.input_to_hidden.emplace_back(c2);
+	}
+	this->brain.hidden_to_hidden.reserve(parent->brain.hidden_to_hidden.size());
+	for (Connection c : parent->brain.hidden_to_hidden) {
+		Connection c2;
+		c2.in = this->brain.hidden[parent->brain.FindHidden(c.in)];
+		c2.out = this->brain.hidden[parent->brain.FindHidden(c.out)];
+		c2.weight = c.weight;
+		this->brain.hidden_to_hidden.emplace_back(c2);
+	}
+	this->brain.hidden_to_output.reserve(parent->brain.hidden_to_output.size());
+	for (Connection c : parent->brain.hidden_to_output) {
+		Connection c2;
+		c2.in = this->brain.hidden[parent->brain.FindHidden(c.in)];
+		c2.out = &this->brain.output[parent->brain.FindOutput(c.out)];
+		c2.weight = c.weight;
+		this->brain.hidden_to_output.emplace_back(c2);
+	}
+	this->brain.input_to_output.reserve(parent->brain.input_to_output.size());
+	for (Connection c : parent->brain.input_to_output) {
+		Connection c2;
+		c2.in = &this->brain.input[parent->brain.FindInput(c.in)];
+		c2.out = &this->brain.output[parent->brain.FindOutput(c.out)];
+		c2.weight = c.weight;
+		this->brain.input_to_output.emplace_back(c2);
+	}
 	
 	// Mutations
 	// Remove hidden
-	/*
-	Here is an error cause if we are removing a neuron every connection connects to one neuron after the deleted neuron.
-	Is should do a new neuron system where connections don't hold the index but rather a pointer to the neuron. For that i need an overall neuron class
-	*/
 	double c_remove_hidden = Random::RandomDouble(0.0, 1.0);
-	if (c_remove_hidden <= sim->mutation_remove_hidden && brain.hidden.size() >= 1) {
-		int index = Random::RandomInt(0, brain.hidden.size());
+	if (c_remove_hidden < sim->mutation_remove_hidden && brain.hidden.size() >= 1) {
+		int index;
+		Neuron* n = brain.GetRandomHiddenneuron(index);
 		for (int i = 0; i < brain.input_to_hidden.size(); i++) {
-			if (brain.input_to_hidden[i].in == index || brain.input_to_hidden[i].out == index)
+			if (brain.input_to_hidden[i].out == n) {
 				brain.input_to_hidden.erase(brain.input_to_hidden.begin() + i);
+				i--;
+			}
 		}
 		for (int i = 0; i < brain.hidden_to_hidden.size(); i++) {
-			if (brain.hidden_to_hidden[i].in == index || brain.hidden_to_hidden[i].out == index)
+			if (brain.hidden_to_hidden[i].in == n || brain.hidden_to_hidden[i].out == n) {
 				brain.hidden_to_hidden.erase(brain.hidden_to_hidden.begin() + i);
+				i--;
+			}
 		}
 		for (int i = 0; i < brain.hidden_to_output.size(); i++) {
-			if (brain.hidden_to_output[i].in == index || brain.hidden_to_output[i].out == index)
+			if (brain.hidden_to_output[i].in == n) {
 				brain.hidden_to_output.erase(brain.hidden_to_output.begin() + i);
+				i--;
+			}
 		}
+		delete n;
 		brain.hidden.erase(brain.hidden.begin() + index);
 		mutation_color_change += sim->mutation_color_change_hidden;
 	}
 	// Add hidden
 	double c_add_hidden = Random::RandomDouble(0.0, 1.0);
-	if (c_add_hidden <= sim->mutation_add_hidden) {
-		this->brain.hidden.push_back(Hiddenneuron());
+	if (c_add_hidden < sim->mutation_add_hidden && this->brain.hidden.size() < sim->max_hidden_neurons) {
+		Neuron* n = new Neuron();
+		this->brain.hidden.emplace_back(n);
 		mutation_color_change += sim->mutation_color_change_hidden;
 	}
 
 	// Bias
 	for (int i = 0; i < SENSOR_SIZE; i++) {
-		double d = Random::RandomDouble(-sim->mutation_bias, sim->mutation_bias);
-		brain.input[i].bias += d;
-		mutation_color_change += abs(d);
+		double c_change_bias = Random::RandomDouble(0.0, 1.0);
+		if (c_change_bias < sim->mutation_change_bias) {
+			double d = Random::RandomDouble(-sim->mutation_change_bias_rate, sim->mutation_change_bias_rate);
+			brain.input[i].bias += d;
+			mutation_color_change += abs(d);
+		}
 	}
 	for (int i = 0; i < brain.hidden.size(); i++) {
-		double d = Random::RandomDouble(-sim->mutation_bias, sim->mutation_bias);
-		brain.hidden[i].bias += d;
-		mutation_color_change += abs(d);
+		double c_change_bias = Random::RandomDouble(0.0, 1.0);
+		if (c_change_bias < sim->mutation_change_bias) {
+			double d = Random::RandomDouble(-sim->mutation_change_bias_rate, sim->mutation_change_bias_rate);
+			brain.hidden[i]->bias += d;
+			mutation_color_change += abs(d);
+		}
 	}
 	for (int i = 0; i < ACTION_SIZE; i++) {
-		double d = Random::RandomDouble(-sim->mutation_bias, sim->mutation_bias);
-		brain.output[i].bias += d;
-		mutation_color_change += abs(d);
+		double c_change_bias = Random::RandomDouble(0.0, 1.0);
+		if (c_change_bias < sim->mutation_change_bias) {
+			double d = Random::RandomDouble(-sim->mutation_change_bias_rate, sim->mutation_change_bias_rate);
+			brain.output[i].bias += d;
+			mutation_color_change += abs(d);
+		}
 	}
 
 	// Weights
 	for (int i = 0; i < this->brain.input_to_hidden.size(); i++) {
-		Connection* c = &this->brain.input_to_hidden[i];
-		double d = Random::RandomDouble(-sim->mutation_weight, sim->mutation_weight);
-		c->weight += d;
-		mutation_color_change += abs(d);
+		double c_change_weight = Random::RandomDouble(0.0, 1.0);
+		if (c_change_weight < sim->mutation_change_weight) {
+			Connection* c = &this->brain.input_to_hidden[i];
+			double d = Random::RandomDouble(-sim->mutation_change_weight_rate, sim->mutation_change_weight_rate);
+			c->weight += d;
+			mutation_color_change += abs(d);
+		}
 	}
 	for (int i = 0; i < this->brain.hidden_to_hidden.size(); i++) {
-		Connection* c = &this->brain.hidden_to_hidden[i];
-		double d = Random::RandomDouble(-sim->mutation_weight, sim->mutation_weight);
-		c->weight += d;
-		mutation_color_change += abs(d);
+		double c_change_weight = Random::RandomDouble(0.0, 1.0);
+		if (c_change_weight < sim->mutation_change_weight) {
+			Connection* c = &this->brain.hidden_to_hidden[i];
+			double d = Random::RandomDouble(-sim->mutation_change_weight_rate, sim->mutation_change_weight_rate);
+			c->weight += d;
+			mutation_color_change += abs(d);
+		}
 	}
 	for (int i = 0; i < this->brain.hidden_to_output.size(); i++) {
-		Connection* c = &this->brain.hidden_to_output[i];
-		double d = Random::RandomDouble(-sim->mutation_weight, sim->mutation_weight);
-		c->weight += d;
-		mutation_color_change += abs(d);
+		double c_change_weight = Random::RandomDouble(0.0, 1.0);
+		if (c_change_weight < sim->mutation_change_weight) {
+			Connection* c = &this->brain.hidden_to_output[i];
+			double d = Random::RandomDouble(-sim->mutation_change_weight_rate, sim->mutation_change_weight_rate);
+			c->weight += d;
+			mutation_color_change += abs(d);
+		}
 	}
 	for (int i = 0; i < this->brain.input_to_output.size(); i++) {
-		Connection* c = &this->brain.input_to_output[i];
-		double d = Random::RandomDouble(-sim->mutation_weight, sim->mutation_weight);
-		c->weight += d;
-		mutation_color_change += abs(d);
+		double c_change_weight = Random::RandomDouble(0.0, 1.0);
+		if (c_change_weight < sim->mutation_change_weight) {
+			Connection* c = &this->brain.input_to_output[i];
+			double d = Random::RandomDouble(-sim->mutation_change_weight_rate, sim->mutation_change_weight_rate);
+			c->weight += d;
+			mutation_color_change += abs(d);
+		}
 	}
 
 	// Add Connection
 	double c_add_weight = Random::RandomDouble(0.0, 1.0);
-	while (c_add_weight <= sim->mutation_add_weight) {
+	while (c_add_weight < sim->mutation_add_weight) {
 		Connection c;
 		mutation_color_change += sim->mutation_color_change_weight;
 		if (brain.hidden.size() != 0) {
 			int a = Random::RandomInt(0, 4);
 
 			if (a == 0 && brain.hidden.size() != 0) { // Input -> Hidden
-				c.in = Random::RandomInt(0, SENSOR_SIZE);
-				c.out = Random::RandomInt(0, brain.hidden.size());
+				c.in = brain.GetRandomInputneuron();
+				c.out = brain.GetRandomHiddenneuron();
 				c.weight = Random::RandomDouble(-1.0, 1.0);
 				bool added = false;
 				for (int i = 0; i < brain.input_to_hidden.size(); i++) {
@@ -315,8 +377,8 @@ void Organism::Inherit(Organism* parent) {
 					brain.input_to_hidden.push_back(c);
 			}
 			else if (a == 1 && brain.hidden.size() != 0) { // Hidden -> Hidden
-				c.in = Random::RandomInt(0, brain.hidden.size());
-				c.out = Random::RandomInt(0, brain.hidden.size());
+				c.in = brain.GetRandomHiddenneuron();
+				c.out = brain.GetRandomHiddenneuron();
 				c.weight = Random::RandomDouble(-1.0, 1.0);
 				bool added = false;
 				for (int i = 0; i < brain.hidden_to_hidden.size(); i++) {
@@ -329,8 +391,8 @@ void Organism::Inherit(Organism* parent) {
 					brain.hidden_to_hidden.push_back(c);
 			}
 			else if (a == 2 && brain.hidden.size() != 0) { // Hidden -> Output
-				c.in = Random::RandomInt(0, brain.hidden.size());
-				c.out = Random::RandomInt(0, ACTION_SIZE);
+				c.in = brain.GetRandomHiddenneuron();
+				c.out = brain.GetRandomOutputneuron();
 				c.weight = Random::RandomDouble(-1.0, 1.0);
 				bool added = false;
 				for (int i = 0; i < brain.hidden_to_output.size(); i++) {
@@ -343,8 +405,8 @@ void Organism::Inherit(Organism* parent) {
 					brain.hidden_to_output.push_back(c);
 			}
 			else if (a == 3) { // Input -> Output
-				c.in = Random::RandomInt(0, SENSOR_SIZE);
-				c.out = Random::RandomInt(0, ACTION_SIZE);
+				c.in = brain.GetRandomInputneuron();
+				c.out = brain.GetRandomOutputneuron();
 				c.weight = Random::RandomDouble(-1.0, 1.0);
 				bool added = false;
 				for (int i = 0; i < brain.input_to_output.size(); i++) {
@@ -358,8 +420,8 @@ void Organism::Inherit(Organism* parent) {
 			}
 		}
 		else {
-			c.in = Random::RandomInt(0, SENSOR_SIZE);
-			c.out = Random::RandomInt(0, ACTION_SIZE);
+			c.in = brain.GetRandomInputneuron();
+			c.out = brain.GetRandomOutputneuron();
 			c.weight = Random::RandomDouble(-1.0, 1.0);
 			bool added = false;
 			for (int i = 0; i < brain.input_to_output.size(); i++) {

@@ -4,12 +4,12 @@
 #include "CImg.h"
 #include <string>
 #include <vector>
-#include <iostream>
 #include <fstream>
 #include <chrono>
 #include "INIReader.h"
 #include "Random.h"
 #include "Vector.h"
+#include <direct.h>
 
 #define Image CImg<unsigned char>
 #define String std::string
@@ -86,30 +86,18 @@ enum Action {
 	ACTION_SIZE
 };
 
-struct Inputneuron {
+struct Neuron {
 	Sensor sensor;
-	double bias = 0.0;
-	double value = 0.0;
-
-	void GetValue(Brain*);
-};
-struct Hiddenneuron {
-	double bias = 0.0;
-	double value = 0.0;
-
-	void Clear();
-};
-struct Outputneuron {
 	Action action;
 	double bias = 0.0;
 	double value = 0.0;
 
 	void Clear();
-	void TranslateValue(Organism*);
 };
 
 struct Connection {
-	int in, out;
+	Neuron* in;
+	Neuron* out;
 	double weight = 1.0;
 	bool operator==(Connection&);
 };
@@ -119,9 +107,9 @@ struct Brain {
 
 	Brain();
 
-	Inputneuron input[SENSOR_SIZE];
-	std::vector<Hiddenneuron> hidden;
-	Outputneuron output[ACTION_SIZE];
+	Neuron input[SENSOR_SIZE];
+	std::vector<Neuron*> hidden;
+	Neuron output[ACTION_SIZE];
 
 	std::vector<Connection> input_to_hidden;
 	std::vector<Connection> hidden_to_hidden;
@@ -129,6 +117,15 @@ struct Brain {
 	std::vector<Connection> hidden_to_output;
 
 	double complexity = 0.0;
+
+	Neuron* GetRandomInputneuron();
+	Neuron* GetRandomHiddenneuron();
+	Neuron* GetRandomHiddenneuron(int&);
+	Neuron* GetRandomOutputneuron();
+
+	int FindInput(Neuron*);
+	int FindHidden(Neuron*);
+	int FindOutput(Neuron*);
 
 	void Behave();
 	void ComputeComplexity();
@@ -151,9 +148,9 @@ struct Organism {
 	double health;
 	double energy;
 	double replication = 0.0;
-	int amount_of_replications = 0;
+	unsigned int amount_of_replications = 0;
 
-	int color[3];
+	char color[3];
 
 	Brain brain;
 
@@ -187,7 +184,8 @@ struct BioSimulation {
 	int max_x, max_y, max_organisms, max_food;
 	double max_energy, max_speed, max_health;
 	double max_replication;
-	
+	int max_hidden_neurons;
+
 	int start_organisms, start_health, start_energy;
 	int start_hidden_neurons, start_ih_connections, start_hh_connections, start_ho_connections, start_io_connections;
 	int start_food;
@@ -198,6 +196,7 @@ struct BioSimulation {
 	double organism_energy_loss_complexity_multiplier;
 	double organism_energy_loss_speed_multiplier;
 	bool organism_failsafe;
+	double organism_health_loss_rate;
 
 	double (*brain_input_activation_function)(double);
 	double (*brain_hidden_activation_function)(double);
@@ -207,8 +206,6 @@ struct BioSimulation {
 	double food_refresh;
 	int food_color[3];
 	double foodcounter = 0.0;
-
-	double health_loss_rate;
 	
 	bool display_simulation;
 	int display_sleep;
@@ -220,6 +217,7 @@ struct BioSimulation {
 	int display_statistics_size_x;
 	int display_statistics_max_y;
 
+	String save_folder;
 
 	bool save_video;
 	String save_video_filename;
@@ -236,8 +234,10 @@ struct BioSimulation {
 	double mutation_add_hidden;
 	double mutation_remove_hidden;
 	double mutation_add_weight;
-	double mutation_weight;
-	double mutation_bias;
+	double mutation_change_weight;
+	double mutation_change_weight_rate;
+	double mutation_change_bias;
+	double mutation_change_bias_rate;
 	double mutation_color_change_hidden;
 	double mutation_color_change_weight;
 	double mutation_color_max_change;
