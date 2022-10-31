@@ -77,7 +77,7 @@ Just run this command:
 
 OR
 
-Download the .exe file and run it under windows.
+Download the .exe file and run it on windows.
 
 ## Settings
 You can change a lot inside the ``Config.ini`` file. In this example the default settings are used
@@ -177,3 +177,7 @@ Sigmoid https://en.wikipedia.org/wiki/Sigmoid_function
 ReLU https://en.wikipedia.org/wiki/Rectifier_(neural_networks)
 
 Linear
+
+## Notes
+
+I haven't tested this application on Linux. If you have an problems, contact me or write a bug report. 
